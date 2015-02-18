@@ -969,30 +969,42 @@ Qed.
 *)
 
 Inductive bin : Type :=
-  | O : bin
+  | BO : bin
   | D : bin -> bin
   | A : bin -> bin.
 
-Definition incr (n : bin) : bin :=
-  match n with
-  | O => A O
-  | (D n') => A n'
-  | (A n') => D (D n')
+Fixpoint incr' (n : bin) (carry : bool) : bin :=
+  match carry with
+  | true => 
+      match n with
+      | BO    => A BO
+      | (A n') => D (incr' n' false)
+      | (D n') => A n
+      end
+  | false =>
+      match n with
+      | BO      => A BO
+      | (A n')  => D (incr' n' true)
+      | (D n')  => A n'
+      end
   end.
+            
+
+Fixpoint incr (n : bin) : bin := incr' n false.
 
 Fixpoint bin_to_nat (n : bin) : nat :=
   match n with
-  | O => 0
+  | BO => 0
   | (D n') => mult (S (S 0)) (bin_to_nat n')
   | (A n') => S (mult (S (S 0)) (bin_to_nat n')) 
   end. 
 
 
-Example test_bin_incr1:             (bin_to_nat (D (D (A O)))) = 4.
+Example test_bin_incr1:             (bin_to_nat (D (D (A BO)))) = 4.
 Proof. reflexivity. Qed.
-Example test_bin_incr2:             (bin_to_nat (incr (D (D (A O))))) = 5.
+Example test_bin_incr2:             (bin_to_nat (incr (D (D (A BO))))) = 5.
 Proof. reflexivity. Qed.
-Example test_bin_incr3:             1 + (bin_to_nat (D (D (A O)))) = 5.
+Example test_bin_incr3:             1 + (bin_to_nat (D (D (A BO)))) = 5.
 Proof. reflexivity.  Qed.
 
 (* FILL IN HERE *)
