@@ -235,19 +235,18 @@ Proof. reflexivity.  Qed.
     its inputs are [false]. *)
 
 Definition nandb (b1:bool) (b2:bool) : bool :=
-  (* FILL IN HERE *) admit.
+  match (b1, b2) with
+  | (false, _) => true
+  | (_, false) => true
+  | (_, _)     => false
+  end. 
 
-(** Remove "[Admitted.]" and fill in each proof with 
-    "[Proof. reflexivity. Qed.]" *)
-
-Example test_nandb1:               (nandb true false) = true.
-(* FILL IN HERE *) Admitted.
 Example test_nandb2:               (nandb false false) = true.
-(* FILL IN HERE *) Admitted.
+Proof. reflexivity. Qed.
 Example test_nandb3:               (nandb false true) = true.
-(* FILL IN HERE *) Admitted.
+Proof. reflexivity. Qed.
 Example test_nandb4:               (nandb true true) = false.
-(* FILL IN HERE *) Admitted.
+Proof. reflexivity. Qed.
 (** [] *)
 
 (** **** Exercise: 1 star (andb3)  *)
@@ -256,16 +255,19 @@ Example test_nandb4:               (nandb true true) = false.
     otherwise. *)
 
 Definition andb3 (b1:bool) (b2:bool) (b3:bool) : bool :=
-  (* FILL IN HERE *) admit.
+ match (b1, b2, b3) with
+ | (true, true, true) => true
+ | _ => false
+ end.
 
 Example test_andb31:                 (andb3 true true true) = true.
-(* FILL IN HERE *) Admitted.
+Proof. reflexivity. Qed.
 Example test_andb32:                 (andb3 false true true) = false.
-(* FILL IN HERE *) Admitted.
+Proof. reflexivity. Qed.
 Example test_andb33:                 (andb3 true false true) = false.
-(* FILL IN HERE *) Admitted.
+Proof. reflexivity. Qed.
 Example test_andb34:                 (andb3 true true false) = false.
-(* FILL IN HERE *) Admitted.
+Proof. reflexivity. Qed.
 (** [] *)
 
 (* ###################################################################### *)
@@ -490,12 +492,16 @@ Fixpoint exp (base power : nat) : nat :=
     Translate this into Coq. *)
 
 Fixpoint factorial (n:nat) : nat := 
-(* FILL IN HERE *) admit.
+  match n with
+  | O => S O
+  | S n' => mult (S n') (factorial n')
+  end.
 
 Example test_factorial1:          (factorial 3) = 6.
-(* FILL IN HERE *) Admitted.
+Proof. reflexivity. Qed.
 Example test_factorial2:          (factorial 5) = (mult 10 12).
-(* FILL IN HERE *) Admitted.
+Proof. reflexivity. Qed.
+
 
 (** [] *)
 
@@ -514,6 +520,7 @@ Notation "x * y" := (mult x y)
                        : nat_scope.
 
 Check ((0 + 1) + 1).
+
 
 (** (The [level], [associativity], and [nat_scope] annotations
    control how these notations are treated by Coq's parser.  The
@@ -571,14 +578,17 @@ Proof. reflexivity.  Qed.
     this one, define it in terms of a previously defined function. *)
 
 Definition blt_nat (n m : nat) : bool :=
-  (* FILL IN HERE *) admit.
+  match m with
+  | O => false
+  | (S m') => ble_nat n m'
+  end. 
 
 Example test_blt_nat1:             (blt_nat 2 2) = false.
-(* FILL IN HERE *) Admitted.
+Proof. reflexivity. Qed.
 Example test_blt_nat2:             (blt_nat 2 4) = true.
-(* FILL IN HERE *) Admitted.
+Proof. reflexivity.  Qed.
 Example test_blt_nat3:             (blt_nat 4 2) = false.
-(* FILL IN HERE *) Admitted.
+Proof. reflexivity.  Qed.
 
 (** [] *)
 
@@ -720,8 +730,11 @@ Proof.
 Theorem plus_id_exercise : forall n m o : nat,
   n = m -> m = o -> n + m = m + o.
 Proof.
-  (* FILL IN HERE *) Admitted.
-(** [] *)
+  intros.
+  rewrite -> H.
+  rewrite <- H0.
+  reflexivity.
+Qed.
 
 (** As we've seen in earlier examples, the [Admitted] command
     tells Coq that we want to skip trying to prove this theorem and
@@ -750,7 +763,11 @@ Theorem mult_S_1 : forall n m : nat,
   m = S n -> 
   m * (1 + n) = m * m.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros.
+  rewrite -> H.
+  simpl.
+  reflexivity.
+Qed.
 (** [] *)
 
 
@@ -835,7 +852,10 @@ Proof.
 Theorem zero_nbeq_plus_1 : forall n : nat,
   beq_nat 0 (n + 1) = false.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros. destruct n as [|n].
+  reflexivity.
+  reflexivity.
+Qed.
 
 (** [] *)
 
@@ -851,13 +871,37 @@ Theorem identity_fn_applied_twice :
   (forall (x : bool), f x = x) ->
   forall (b : bool), f (f b) = b.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros.
+  destruct b.
+  rewrite -> H.
+  rewrite -> H.
+  reflexivity.
+  rewrite <- H.
+  rewrite <- H.
+  reflexivity.
+Qed.
 
 (** Now state and prove a theorem [negation_fn_applied_twice] similar
     to the previous one but where the second hypothesis says that the
     function [f] has the property that [f x = negb x].*)
 
-(* FILL IN HERE *)
+Theorem negation_fn_applied_twice :
+  forall (f : bool -> bool),
+  (forall (x : bool), f x = negb x) ->
+  forall (b : bool), f (f b) = b.
+Proof.
+  intros.
+  destruct b.
+  rewrite -> H.
+  rewrite -> H.
+  rewrite negb_involutive.
+  reflexivity.
+  rewrite -> H.
+  rewrite -> H.
+  rewrite negb_involutive.
+  reflexivity.
+Qed.
+
 (** [] *)
 
 (** **** Exercise: 2 stars (andb_eq_orb)  *)
@@ -870,7 +914,22 @@ Theorem andb_eq_orb :
   (andb b c = orb b c) ->
   b = c.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros b c.
+  destruct b.
+  destruct c.
+  reflexivity.
+  simpl.
+  intros.
+  rewrite -> H.
+  reflexivity.
+  destruct c.
+  simpl.
+  intros.
+  rewrite -> H.
+  reflexivity.
+  simpl.
+  reflexivity.
+Qed.
 (** [] *)
 
 (** **** Exercise: 3 stars (binary)  *)
@@ -908,6 +967,33 @@ Proof.
         should yield the same result as first converting it to unary and 
         then incrementing. 
 *)
+
+Inductive bin : Type :=
+  | O : bin
+  | D : bin -> bin
+  | A : bin -> bin.
+
+Definition incr (n : bin) : bin :=
+  match n with
+  | O => A O
+  | (D n') => A n'
+  | (A n') => D (D n')
+  end.
+
+Fixpoint bin_to_nat (n : bin) : nat :=
+  match n with
+  | O => 0
+  | (D n') => mult (S (S 0)) (bin_to_nat n')
+  | (A n') => S (mult (S (S 0)) (bin_to_nat n')) 
+  end. 
+
+
+Example test_bin_incr1:             (bin_to_nat (D (D (A O)))) = 4.
+Proof. reflexivity. Qed.
+Example test_bin_incr2:             (bin_to_nat (incr (D (D (A O))))) = 5.
+Proof. reflexivity. Qed.
+Example test_bin_incr3:             1 + (bin_to_nat (D (D (A O)))) = 5.
+Proof. reflexivity.  Qed.
 
 (* FILL IN HERE *)
 (** [] *)
@@ -982,4 +1068,5 @@ Fixpoint plus' (n : nat) (m : nat) : nat :=
 (** [] *)
 
 (** $Date: 2014-12-31 15:31:47 -0500 (Wed, 31 Dec 2014) $ *)
+
 
