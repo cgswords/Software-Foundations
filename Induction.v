@@ -683,8 +683,6 @@ Proof.
   intros. simpl. reflexivity.
 Qed.
 
-
-
 Theorem bin_incr_comm : forall b : bin,
                         bin_to_nat (incr b) = S (bin_to_nat b).
 Proof.
@@ -696,14 +694,15 @@ Proof.
   simpl. rewrite plus_n_Sm.
   rewrite plus_0_r. reflexivity.
   Case "b = 2".
-  simpl. rewrite plus_0_r. rewrite plus_0_r. rewrite plus_n_Sm.
+  unfold bin_to_nat.
+  fold bin_to_nat.  
+  simpl.
+  rewrite plus_0_r. rewrite plus_0_r. rewrite plus_n_Sm.
   rewrite <- IHb. 
   rewrite (plus_comm (bin_to_nat b) (bin_to_nat (incr b))).
-  rewrite plus_n_Sm. rewrite <- IHb. simpl.
- Abort.
-  
+  rewrite plus_n_Sm. rewrite <- IHb. simpl. reflexivity.
+Qed.
 
-(* FILL IN HERE *)
 (** [] *)
 
 

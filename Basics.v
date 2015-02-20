@@ -973,24 +973,12 @@ Inductive bin : Type :=
   | D : bin -> bin
   | A : bin -> bin.
 
-Fixpoint incr' (n : bin) (carry : bool) : bin :=
-  match carry with
-  | true => 
-      match n with
-      | BO    => A BO
-      | (A n') => D (incr' n' false)
-      | (D n') => A n
-      end
-  | false =>
-      match n with
-      | BO      => A BO
-      | (A n')  => D (incr' n' true)
-      | (D n')  => A n'
-      end
+Fixpoint incr (b : bin) : bin :=
+  match b with
+  | BO   => A BO
+  | D b' => A b'
+  | A b' => D (incr b')
   end.
-            
-
-Fixpoint incr (n : bin) : bin := incr' n false.
 
 Fixpoint bin_to_nat (n : bin) : nat :=
   match n with
