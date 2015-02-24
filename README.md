@@ -6,10 +6,10 @@ Working through Software Foundations to learn Coq
 - `Basics.v`
 - `Induction.v`
 - `Lists.v`
+- `Poly.v`
 
 ## Incomplete
 
-- `Poly.v`
 - `MoreCoq.v`
 - `Logic.v`
 - `Prop.v`

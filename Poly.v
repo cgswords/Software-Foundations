@@ -1270,9 +1270,9 @@ Proof. (* FILL IN HERE *) Admitted.
 
 Example exp_3 : exp three zero = one.
 Proof. (* FILL IN HERE *) Admitted.
-
-End Church.
 **)
+End Church.
+
 (** [] *)
 
 (** $Date: 2014-12-31 11:17:56 -0500 (Wed, 31 Dec 2014) $ *)
