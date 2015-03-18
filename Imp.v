@@ -2063,7 +2063,45 @@ Reserved Notation "c1 '/' st '||' s '/' st'"
 Inductive ceval : com -> state -> status -> state -> Prop :=
   | E_Skip : forall st,
       CSkip / st || SContinue / st
+  | E_Break : forall st,
+      CBreak / st || SBreak / st
+  | E_Assn : forall st,
+      CAss i a / st || 
   (* FILL IN HERE *)
+
+
+Inductive com : Type :=
+  | CSkip : com
+  | CBreak : com
+  | CAss : id -> aexp -> com
+  | CSeq : com -> com -> com
+  | CIf : bexp -> com -> com -> com
+  | CWhile : bexp -> com -> com.
+
+
+      (x ::= a1) / st || (update st x n)
+  | E_Seq : forall c1 c2 st st' st'',
+      c1 / st  || st' ->
+      c2 / st' || st'' ->
+      (c1 ;; c2) / st || st''
+  | E_IfTrue : forall st st' b c1 c2,
+      beval st b = true ->
+      c1 / st || st' ->
+      (IFB b THEN c1 ELSE c2 FI) / st || st'
+  | E_IfFalse : forall st st' b c1 c2,
+      beval st b = false ->
+      c2 / st || st' ->
+      (IFB b THEN c1 ELSE c2 FI) / st || st'
+  | E_WhileEnd : forall b st c,
+      beval st b = false ->
+      (WHILE b DO c END) / st || st
+  | E_WhileLoop : forall st st' st'' b c,
+      beval st b = true ->
+      c / st || st' ->
+      (WHILE b DO c END) / st' || st'' ->
+      (WHILE b DO c END) / st || st''
+
+
 
   where "c1 '/' st '||' s '/' st'" := (ceval c1 st s st').
 
