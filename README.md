@@ -8,13 +8,16 @@ Working through Software Foundations to learn Coq
 - `Lists.v`
 - `Poly.v`
 - `MoreCoq.v`
+- `Logic.v`
+- `Prop.v`
+
+## Skipped / Abandoned
+
+- `Rel.v` *Skipped*
+- `MoreLogic.v` *Abandoned*
 
 ## Incomplete
 
-- `Logic.v`
-- `Prop.v`
-- `Rel.v`
-- `MoreLogic.v`
 - `Imp.v`
 - `ImpCEvalFun.v`
 - `Equiv.v`

@@ -51,7 +51,16 @@ Inductive ev : nat -> Prop :=
 Theorem double_even : forall n,
   ev (double n).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros.
+  induction n.
+  Case "n = 0".
+    simpl. 
+    apply ev_0.
+  Case "n = S n'".
+    simpl.
+    apply ev_SS.
+    exact IHn.
+Qed.
 (** [] *)
 
 
@@ -148,10 +157,10 @@ Proof.
     follows: *)
 
 Inductive beautiful : nat -> Prop :=
-  b_0   : beautiful 0
-| b_3   : beautiful 3
-| b_5   : beautiful 5
-| b_sum : forall n m, beautiful n -> beautiful m -> beautiful (n+m).
+    b_0   : beautiful 0
+  | b_3   : beautiful 3
+  | b_5   : beautiful 5
+  | b_sum : forall n m, beautiful n -> beautiful m -> beautiful (n+m).
 
 (** *** *)
 (** 
@@ -193,13 +202,36 @@ Qed.
 (** **** Exercise: 2 stars (b_times2)  *)
 Theorem b_times2: forall n, beautiful n -> beautiful (2*n).
 Proof.
-    (* FILL IN HERE *) Admitted.
+  intros n B.
+  assert (H : 2 * n = n + n).
+    simpl.
+    SearchAbout plus.
+    rewrite plus_0_r.
+    reflexivity.
+  rewrite H.
+  apply b_sum with (n:=n) (m:=n); apply B.
+Qed.
 (** [] *)
 
 (** **** Exercise: 3 stars (b_timesm)  *)
 Theorem b_timesm: forall n m, beautiful n -> beautiful (m*n).
 Proof.
-   (* FILL IN HERE *) Admitted.
+  intros n m.
+  induction m.
+  Case "m = 0".
+    simpl.
+    intros.
+    apply b_0.
+  Case "m = S m'".
+    assert (H: S m * n = n + m * n).
+      simpl. reflexivity.
+    rewrite H.
+    intros.
+    apply b_sum with (n:=n) (m:=m * n).
+    apply H0.
+    apply IHm.
+    apply H0.
+Qed.
 (** [] *)
 
 
@@ -253,7 +285,9 @@ Inductive gorgeous : nat -> Prop :=
 Theorem gorgeous_plus13: forall n, 
   gorgeous n -> gorgeous (13+n).
 Proof.
-   (* FILL IN HERE *) Admitted.
+  intros.
+  destruct n; apply g_plus3; apply g_plus5; apply g_plus5; apply H.
+Qed.
 (** [] *)
 
 (** *** *)
@@ -261,7 +295,6 @@ Proof.
     [beautiful] are presented using slightly different rules, they are
     actually the same property in the sense that they are true of the
     same numbers.  Indeed, we can prove this. *)
-
 
 Theorem gorgeous__beautiful_FAILED : forall n, 
   gorgeous n -> beautiful n.
@@ -289,7 +322,7 @@ Theorem gorgeous__beautiful : forall n,
   gorgeous n -> beautiful n.
 Proof.
    intros n H.
-   induction H as [|n'|n'].
+   induction H as [|n'|m].
    Case "g_0".
        apply b_0.
    Case "g_plus3". 
@@ -306,17 +339,36 @@ Qed.
 Theorem gorgeous_sum : forall n m,
   gorgeous n -> gorgeous m -> gorgeous (n + m).
 Proof.
- (* FILL IN HERE *) Admitted.
+  intros n m H Hm.
+  induction H.
+  Case "g = 0".
+  rewrite plus_0_l. exact Hm.
+  Case "g_plus3".
+  apply g_plus3 in IHgorgeous.
+  exact IHgorgeous.
+  Case "g_plus5".
+  apply g_plus5 in IHgorgeous.
+  exact IHgorgeous.
+Qed.
 (** [] *)
 
 (** **** Exercise: 3 stars, advanced (beautiful__gorgeous)  *)
 Theorem beautiful__gorgeous : forall n, beautiful n -> gorgeous n.
 Proof.
- (* FILL IN HERE *) Admitted.
+  intros.
+  induction H.
+  Case "g_0".
+    exact g_0.
+  Case "g_3".
+    apply g_plus3. exact g_0.
+  Case "g_5".
+    apply g_plus5. exact g_0.
+  Case "m + n".
+    apply gorgeous_sum. 
+    exact IHbeautiful1.
+    exact IHbeautiful2.
+Qed.
 (** [] *)
-
-
-
 
 (** **** Exercise: 3 stars, optional (g_times2)  *)
 (** Prove the [g_times2] theorem below without using [gorgeous__beautiful].
@@ -324,16 +376,37 @@ Proof.
 
 Lemma helper_g_times2 : forall x y z, x + (z + y) = z + x + y.
 Proof.
-   (* FILL IN HERE *) Admitted.
+  intros.
+  rewrite plus_comm.
+  rewrite <- plus_assoc.
+  rewrite (plus_comm y x).
+  rewrite plus_assoc.
+  reflexivity.
+Qed.
 
 Theorem g_times2: forall n, gorgeous n -> gorgeous (2*n).
 Proof.
-   intros n H. simpl. 
-   induction H.
-   (* FILL IN HERE *) Admitted.
+  intros n H. 
+  simpl. 
+  induction H.
+  Case "g_0".
+    simpl. exact g_0.
+  Case "g_3".
+     apply g_plus3 in IHgorgeous.
+     apply g_plus3 in IHgorgeous.
+     rewrite (plus_comm 3 (n + (n + 0))) in IHgorgeous.
+     rewrite <- plus_assoc in IHgorgeous.
+     rewrite (plus_comm (n + 0) 3) in IHgorgeous.
+     exact IHgorgeous.
+  Case "g_5".
+   apply g_plus5 in IHgorgeous.
+   apply g_plus5 in IHgorgeous.
+   rewrite (plus_comm 5 (n + (n + 0))) in IHgorgeous.
+   rewrite <- plus_assoc in IHgorgeous.
+   rewrite (plus_comm (n + 0) 5) in IHgorgeous.
+   exact IHgorgeous.
+Qed.
 (** [] *)
-
-
 
 (** Here is a proof that the inductive definition of evenness implies
 the computational one. *)
@@ -381,7 +454,12 @@ Qed.
 Theorem ev_sum : forall n m,
    ev n -> ev m -> ev (n+m).
 Proof. 
-  (* FILL IN HERE *) Admitted.
+  intros.
+  induction H.
+  simpl. exact H0.
+  simpl. apply ev_SS.
+  exact IHev.
+Qed.
 (** [] *)
 
 
@@ -460,7 +538,11 @@ Proof.
 Theorem SSSSev__even : forall n,
   ev (S (S (S (S n)))) -> ev n.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros.
+  inversion H.
+  inversion H1.
+  exact H3.
+Qed.
 
 (** The [inversion] tactic can also be used to derive goals by showing
     the absurdity of a hypothesis. *)
@@ -468,7 +550,11 @@ Proof.
 Theorem even5_nonsense : 
   ev 5 -> 2 + 2 = 9.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros.
+  inversion H.
+  inversion H1.
+  inversion H3.
+Qed.
 (** [] *)
 
 (** **** Exercise: 3 stars, advanced (ev_ev__ev)  *)
@@ -478,8 +564,33 @@ Proof.
 Theorem ev_ev__ev : forall n m,
   ev (n+m) -> ev n -> ev m.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros.
+  induction H0 as [|n IH].
+  Case "n = 0".
+    simpl in H.
+    exact H.
+  Case "n = S (S n')".
+    simpl in H.
+    apply SSev__even in H.
+    apply IHIH in H.
+    exact H.
+Qed.
+
 (** [] *)
+
+Theorem ev_double : forall n,
+  ev (2 * n).
+Proof.
+  intros.
+  induction n.
+  Case "n = 0".
+  simpl. apply ev_0.
+  Case "n = S n'".
+  simpl. rewrite <- plus_n_Sm.
+  apply ev_SS. rewrite plus_0_r.
+  simpl in IHn. rewrite plus_0_r in IHn.
+  apply IHn.
+Qed.
 
 (** **** Exercise: 3 stars, optional (ev_plus_plus)  *)
 (** Here's an exercise that just requires applying existing lemmas.  No
@@ -489,7 +600,29 @@ Proof.
 Theorem ev_plus_plus : forall n m p,
   ev (n+m) -> ev (n+p) -> ev (m+p).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros n m p Hnm Hnp.
+  apply ev_sum with (n:=(n+p)) in Hnm.
+  assert (n + p + (n + m) = 2 * n + (m + p)).
+    simpl. symmetry. rewrite plus_assoc. rewrite plus_0_r.
+    rewrite plus_comm. rewrite plus_assoc. rewrite plus_assoc.
+    rewrite (plus_comm p n). symmetry. rewrite plus_assoc. reflexivity.
+  rewrite H in Hnm.
+  apply ev_ev__ev with (m:=m+p) in Hnm.
+  exact Hnm.
+  assert (m + p + (m + p) = 2 * (m + p)).
+    simpl. rewrite plus_assoc. symmetry. rewrite plus_assoc.
+    rewrite plus_0_r. rewrite plus_assoc. reflexivity.
+  rewrite plus_assoc. rewrite plus_assoc.
+  rewrite <- (plus_assoc (2 * n) m p).
+  rewrite <- plus_assoc.
+  rewrite <- (plus_assoc (2 * n) (m + p) (m + p)).
+  rewrite H0.
+  apply ev_sum.
+  apply ev_double.
+  apply ev_double.
+  exact Hnp.
+Qed.  
+
 (** [] *)
 
 
@@ -584,7 +717,157 @@ Qed.
        forall l, pal l -> l = rev l.
 *)
 
-(* FILL IN HERE *)
+Inductive pal {X:Type} : list X -> Prop :=
+  | pal_nil : pal []
+  | pal_one : forall x, pal [x]
+  | pal_cc  : forall l, l = rev l -> pal l.
+
+
+Lemma snoc_app : forall X (l : list X) x,
+                   snoc l x = l ++ [x].
+Proof.
+  intros.
+  induction l.
+  Case "l = []".
+    simpl. reflexivity.
+  Case "l = x :: l'".
+    simpl. rewrite IHl. reflexivity.
+Qed.
+
+Lemma rev_app : forall X (l : list X) x, 
+                  rev (x :: l) = (rev l) ++ [x].
+Proof.
+  intros.
+  induction l.
+  Case "l = []".
+  simpl. reflexivity.
+  Case "l = x :: l".
+    simpl.
+    rewrite snoc_app.
+    reflexivity.
+Qed.
+
+Lemma app_empty : forall {X : Type} (l : list X),
+                    l ++ [] = l.
+Proof.
+  intros.
+  induction l.
+  reflexivity.
+  rewrite <- IHl.
+  simpl. rewrite -> IHl. rewrite -> IHl. reflexivity.
+Qed.
+
+Lemma app_cons_front : forall {X} x (l1 l2 : list X),
+                         l1 = l2 -> x :: l1 = x :: l2.
+Proof.
+  intros. rewrite H. reflexivity.
+Qed.
+
+Lemma app_assoc : forall X (l1 l2 l3 : list X),
+                    l1 ++ l2 ++ l3 = (l1 ++l2) ++ l3.
+Proof.
+  intros X l1.
+  induction l1.
+    simpl.
+    intros.
+    reflexivity.
+  intros.
+  simpl.
+  apply app_cons_front.
+  rewrite IHl1.
+  reflexivity.
+Qed.
+
+Lemma app_cons_assoc : forall X x (l l1 l2 : list X),
+             l = l1 ++ l2 -> x :: l ++ [x] = x :: l1 ++ l2 ++ [x].
+Proof.
+  intros.
+  destruct l2.
+  simpl. rewrite H. rewrite (app_empty l1). reflexivity.
+  rewrite H.
+  destruct l1.
+    simpl. reflexivity.
+    simpl. 
+    simpl in H.
+    repeat apply app_cons_front.
+    rewrite <- app_assoc.
+    simpl.
+    reflexivity.
+Qed.
+
+Lemma rev_app_l : forall X x (l : list X),
+                    rev (l ++ [x]) = x :: (rev l).
+Proof.
+  intros.
+  induction l.
+  simpl.
+  reflexivity.
+  simpl. rewrite IHl.
+  simpl.
+  reflexivity.
+Qed.
+
+Lemma rev_cons_app : forall X x (l : list X),
+                       l = rev l -> (x :: l ++ [x]) = rev (x :: l ++ [x]).
+Proof.
+  intros.
+  simpl.
+  rewrite rev_app_l.
+  simpl. rewrite <- H.
+  rewrite snoc_app.
+  reflexivity.
+Qed.
+
+Theorem pal_cons : forall X (l : list X) (x : X), pal l -> pal (x :: l ++ [x]).
+Proof.
+  intros.
+  induction H.
+  Case "l = []".
+    assert ([x; x] = rev [x; x]).
+      reflexivity.
+    simpl.
+    apply pal_cc in H.
+    exact H.
+   Case "l = [x]".
+     simpl. 
+     assert ([x; x0; x] = rev [x; x0; x]).
+       simpl. reflexivity.
+     apply pal_cc in H.
+     exact H.
+   Case "l = rev l".
+     simpl.
+     apply rev_cons_app with (x:=x) in H.
+     apply pal_cc in H.
+     exact H.
+Qed.       
+
+Theorem pal_app_rev : forall X (l : list X), pal (l ++ rev l). 
+Proof.
+  intros.
+  induction l.
+  Case "l = []". simpl. apply pal_nil.
+  Case "l = x :: l'".
+  simpl. rewrite snoc_app. 
+  remember (l ++ rev l) as H.
+  apply app_cons_assoc with (x:=x) in HeqH.
+  rewrite <- HeqH.
+  apply pal_cons with (x:=x) in IHl.
+  exact IHl.
+Qed.
+
+
+Theorem pal_rev : forall {X : Type} (l : list X), pal l -> l = rev l.
+Proof.
+  intros.
+  induction H.
+  Case "l = []".
+    simpl. reflexivity.
+  Case "l = [x]".
+    simpl. reflexivity.
+  Case "l = x :: l'".
+    simpl. exact H.
+Qed.
+
 (** [] *)
 
 (* Again, the converse direction is much more difficult, due to the
@@ -596,10 +879,15 @@ lack of evidence. *)
      forall l, l = rev l -> pal l.
 *)
 
-(* FILL IN HERE *)
+Theorem pal_converse : forall {X : Type} (l : list X),
+                         l = rev l -> pal l.
+Proof.
+  intros. 
+  apply pal_cc in H.
+  exact H.
+Qed.  
+
 (** [] *)
-
-
 
 (* ####################################################### *)
 (** ** Relations *)
@@ -689,14 +977,17 @@ Inductive next_even : nat -> nat -> Prop :=
 (** Define an inductive binary relation [total_relation] that holds
     between every pair of natural numbers. *)
 
-(* FILL IN HERE *)
+Inductive total_relation : nat -> nat -> Prop :=
+  | total_n : forall n m, total_relation n m.
+
 (** [] *)
 
 (** **** Exercise: 2 stars (empty_relation)  *)
 (** Define an inductive binary relation [empty_relation] (on numbers)
     that never holds. *)
 
-(* FILL IN HERE *)
+Inductive empty_relation : nat -> nat -> Prop := .
+
 (** [] *)
 
 (** **** Exercise: 2 stars, optional (le_exercises)  *)
@@ -706,66 +997,242 @@ Inductive next_even : nat -> nat -> Prop :=
 
 Lemma le_trans : forall m n o, m <= n -> n <= o -> m <= o.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros m.
+  induction m.
+  Case "o = 0".
+    intros.
+    rewrite H.
+    exact H0.
+  Case "IH".
+  intros.
+    rewrite H.
+    exact H0.
+Qed.
 
 Theorem O_le_n : forall n,
   0 <= n.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros.
+  induction n.
+  Case "n = 0".
+    apply le_n.
+  Case "n = S n".
+    apply le_S.
+    exact IHn.
+Qed.
+
+Lemma S_le_Sn : forall n,
+                 0 <= n <-> 1 <= S n.
+Proof.
+  intros.
+  split.
+  Case "=>".
+  intros.
+  induction H.
+    apply le_n.
+    apply le_S in IHle.
+    exact IHle.
+  Case "=>".
+  intros.
+  induction n.
+    apply le_n.
+  inversion H.
+  apply IHn in H1.
+  apply le_S in H1.
+  exact H1.
+Qed.
 
 Theorem n_le_m__Sn_le_Sm : forall n m,
   n <= m -> S n <= S m.
 Proof. 
-  (* FILL IN HERE *) Admitted.
+  intros n m H.
+  induction H.
+  apply le_n.
+  induction n.
+  apply S_le_Sn in H.
+  apply le_S in H.
+  exact H.
+  apply le_S in IHle.
+  exact IHle.
+Qed.
 
+Theorem Sn_le_m_S : forall n m,
+                    S n <= m -> S n <= S m.
+Proof.
+  intros.
+  induction H.
+  apply le_S.
+  apply le_n.
+  apply le_S.
+  exact IHle.
+Qed.
+
+Theorem Sn_le_m_n : forall n m,
+                      S n <= m -> n <= m.
+Proof.
+  intros.
+  induction H.
+  apply le_S. 
+  apply le_n.
+  apply le_S.
+  apply IHle.
+Qed.
 
 Theorem Sn_le_Sm__n_le_m : forall n m,
   S n <= S m -> n <= m.
 Proof. 
-  (* FILL IN HERE *) Admitted.
-
+  intros.
+  induction n.
+  Case "n = 0".
+    apply S_le_Sn in H.
+    exact H.
+  Case "n = S n".
+    inversion H.
+    apply le_n.
+    apply Sn_le_m_n in H1.
+    exact H1.
+Qed.
 
 Theorem le_plus_l : forall a b,
   a <= a + b.
 Proof. 
-  (* FILL IN HERE *) Admitted.
+  intros.
+  induction a.
+  Case "a = 0".
+  simpl.
+  apply O_le_n.
+  simpl.
+  apply n_le_m__Sn_le_Sm.
+  exact IHa.
+Qed.
 
 Theorem plus_lt : forall n1 n2 m,
   n1 + n2 < m ->
   n1 < m /\ n2 < m.
 Proof. 
  unfold lt. 
- (* FILL IN HERE *) Admitted.
+ intros.
+ induction H.
+ Case "Base".
+   intros.
+   split; rewrite plus_n_Sm.
+   SCase "left".
+     rewrite <- Plus.plus_Snm_nSm.
+     apply le_plus_l.
+   SCase "right".
+     rewrite plus_comm.
+     apply le_plus_l.
+ Case "Ind".
+   split. 
+   SCase "left".
+     destruct IHle.
+     apply le_S in H0.
+     exact H0.
+   SCase "right".
+     destruct IHle.
+     apply le_S in H1.
+     exact H1.
+Qed.
 
 Theorem lt_S : forall n m,
   n < m ->
   n < S m.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros.
+  unfold lt.
+  induction n.
+  Case "n = 0".
+    apply le_S in H.
+    exact H.
+  Case "n = S n".
+    apply n_le_m__Sn_le_Sm in H.
+    apply Sn_le_m_n in H.
+    exact H.
+Qed.
+
+Lemma ble_nat_S : forall n m,
+                    ble_nat n m = true -> ble_nat n (S m) = true.
+Proof.
+  intros.
+  generalize dependent n.
+  induction m.
+  Case "m = 0".
+    intros.
+    assert (ble_nat n 0 = true -> n = 0).
+      destruct n.
+        simpl. reflexivity.
+        inversion H.
+    apply H0 in H.
+    rewrite H.
+    simpl. reflexivity.
+  Case "m = S m".
+    intros.
+    destruct n.
+    simpl. reflexivity.
+    apply IHm in H.
+    simpl.
+    exact H.
+Qed.
 
 Theorem ble_nat_true : forall n m,
-  ble_nat n m = true -> n <= m.
+                         ble_nat n m = true -> n <= m.
 Proof. 
-  (* FILL IN HERE *) Admitted.
+  intros n m H.
+  generalize dependent m.
+  induction n.
+  Case "n = 0".
+  intros.
+    apply O_le_n.
+  Case "n = S n".
+    destruct m.
+    SCase "m = 0".
+      intros.
+      inversion H.
+    SCase "m = S m".
+      intros.
+      simpl in H.
+      apply IHn in H.
+      apply n_le_m__Sn_le_Sm in H.
+      exact H.
+Qed.
 
 Theorem le_ble_nat : forall n m,
   n <= m ->
   ble_nat n m = true.
 Proof.
-  (* Hint: This may be easiest to prove by induction on [m]. *)
-  (* FILL IN HERE *) Admitted.
+  intros.
+  induction H.
+  rewrite <- ble_nat_refl.
+  reflexivity.
+  apply ble_nat_S.
+  exact IHle.
+Qed.
 
 Theorem ble_nat_true_trans : forall n m o,
   ble_nat n m = true -> ble_nat m o = true -> ble_nat n o = true.                               
 Proof.
-  (* Hint: This theorem can be easily proved without using [induction]. *)
-  (* FILL IN HERE *) Admitted.
+  intros.
+  apply le_ble_nat.
+  apply ble_nat_true in H.
+  apply ble_nat_true in H0.
+  rewrite H.
+  rewrite H0.
+  apply le_n.
+Qed.
 
 (** **** Exercise: 2 stars, optional (ble_nat_false)  *)
 Theorem ble_nat_false : forall n m,
   ble_nat n m = false -> ~(n <= m).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros.
+  induction n.
+  inversion H.
+  unfold not.
+  intros.
+  apply le_ble_nat in H0.
+  rewrite H0 in H.
+  inversion H.
+Qed.
 (** [] *)
 
 
@@ -841,6 +1308,52 @@ End R.
       is a subsequence of [l3], then [l1] is a subsequence of [l3].  
       Hint: choose your induction carefully!
 *)
+
+SearchAbout list.
+
+Inductive subseq : list nat -> list nat -> Prop :=
+  | snil  : forall l, subseq [] l
+  | sone : forall x l1 l2, subseq l1 l2 -> subseq (x::l1) (x::l2)
+  | scons : forall x l1 l2, subseq l1 l2 -> subseq l1 (x :: l2).
+
+Theorem subseq_refl : forall l, subseq l l.
+Proof.
+  intros.
+  induction l.
+  apply snil.
+  apply sone.
+  apply IHl.
+Qed.
+
+Theorem subseq_app : forall l1 l2 l3, subseq l1 l2 -> subseq l1 (l2 ++ l3).
+Proof.
+  intros.
+  induction H.
+  apply snil.
+  simpl.
+  apply sone.
+  apply IHsubseq.
+  simpl.
+  apply scons.
+  apply IHsubseq.
+Qed.
+
+Theorem subseq_trans : forall l1 l2 l3, subseq l1 l2 -> subseq l2 l3 -> subseq l1 l3.
+Proof.
+  intros l1 l2 l3 H12 H23.
+  induction l3.
+    inversion H23.
+    rewrite <- H in H12.
+    exact H12.
+    apply scons.
+    inversion H23.
+    rewrite <- H in H23.
+    rewrite <- H in H12.
+    inversion H12.
+    apply snil.
+    rewrite <- H0 in H23.
+    rewrite H in H23.
+Abort.  
 
 (* FILL IN HERE *)
 (** [] *)
@@ -988,10 +1501,6 @@ Definition natural_number_induction_valid : Prop :=
     preserved_by_S P -> 
     true_for_all_numbers P. 
 
-
-
-
-
 (** **** Exercise: 3 stars (combine_odd_even)  *)
 (** Complete the definition of the [combine_odd_even] function
     below. It takes as arguments two properties of numbers [Podd] and
@@ -999,8 +1508,10 @@ Definition natural_number_induction_valid : Prop :=
     that [P n] is equivalent to [Podd n] when [n] is odd, and
     equivalent to [Peven n] otherwise. *)
 
-Definition combine_odd_even (Podd Peven : nat -> Prop) : nat -> Prop :=
-  (* FILL IN HERE *) admit.
+Definition combine_odd_even (Podd Peven : nat -> Prop) : nat -> Prop := 
+  fun (n : nat) => if oddb n
+                   then Podd n
+                   else Peven n.
 
 (** To test your definition, see whether you can prove the following
     facts: *)
@@ -1011,7 +1522,18 @@ Theorem combine_odd_even_intro :
     (oddb n = false -> Peven n) ->
     combine_odd_even Podd Peven n.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros.
+  unfold combine_odd_even.
+  destruct (oddb n).
+  assert (true = true).
+    reflexivity.
+  apply H in H1.
+  exact H1.
+  assert (false = false).
+    reflexivity.
+  apply H0 in H1.
+  exact H1.
+Qed.
 
 Theorem combine_odd_even_elim_odd :
   forall (Podd Peven : nat -> Prop) (n : nat),
@@ -1019,7 +1541,11 @@ Theorem combine_odd_even_elim_odd :
     oddb n = true ->
     Podd n.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros.
+  unfold combine_odd_even in H.
+  rewrite H0 in H.
+  exact H.
+Qed.
 
 Theorem combine_odd_even_elim_even :
   forall (Podd Peven : nat -> Prop) (n : nat),
@@ -1027,7 +1553,11 @@ Theorem combine_odd_even_elim_even :
     oddb n = false ->
     Peven n.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros.
+  unfold combine_odd_even in H.
+  rewrite H0 in H.
+  exact H.
+Qed.
 
 (** [] *)
 
@@ -1044,15 +1574,20 @@ Proof.
     [true_upto_n__true_everywhere] that makes
     [true_upto_n_example] work. *)
 
-(* 
-Fixpoint true_upto_n__true_everywhere
+SearchAbout even.
+ 
+Fixpoint true_upto_n__true_everywhere (n : nat) (f : nat -> Prop) : Prop :=
+  match n with
+  | 0      => forall m : nat, f m
+  | (S n') => (f n) -> true_upto_n__true_everywhere n' f
+  end.
 (* FILL IN HERE *)
 
 Example true_upto_n_example :
     (true_upto_n__true_everywhere 3 (fun n => even n))
   = (even 3 -> even 2 -> even 1 -> forall m : nat, even m).
 Proof. reflexivity.  Qed.
-*)
+
 (** [] *)
 
 (** $Date: 2014-12-31 11:17:56 -0500 (Wed, 31 Dec 2014) $ *)

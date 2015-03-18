@@ -110,7 +110,15 @@ Qed.
 Theorem dist_not_exists : forall (X:Type) (P : X -> Prop),
   (forall x, P x) -> ~ (exists x, ~ P x).
 Proof. 
-  (* FILL IN HERE *) Admitted.
+  intros.
+  unfold not.
+  intros.
+  inversion H0 as [x He].
+  apply He in H.
+  exact H.
+  (* intuition. *)
+Qed.
+  
 (** [] *)
 
 (** **** Exercise: 3 stars, optional (not_exists_dist)  *)
@@ -122,7 +130,11 @@ Theorem not_exists_dist :
   forall (X:Type) (P : X -> Prop),
     ~ (exists x, ~ P x) -> (forall x, P x).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros em X P H.
+  unfold not in H.
+  unfold excluded_middle in em.
+Abort.  
+  
 (** [] *)
 
 (** **** Exercise: 2 stars (dist_exists_or)  *)
@@ -132,7 +144,30 @@ Proof.
 Theorem dist_exists_or : forall (X:Type) (P Q : X -> Prop),
   (exists x, P x \/ Q x) <-> (exists x, P x) \/ (exists x, Q x).
 Proof.
-   (* FILL IN HERE *) Admitted.
+  intros.
+  split.
+  Case "=>".  
+  intros.
+  inversion H as [x PQ].
+  inversion PQ.
+  left.
+  exists x.
+  apply H0.
+  right.
+  exists x.
+  apply H0.
+  Case "<=".
+  intros.
+  inversion H as [HP | HQ].
+  inversion HP as [x Px].
+  exists x.
+  left.
+  apply Px.
+  inversion HQ as [x Qx].
+  exists x.
+  right.
+  apply Qx.
+Qed.   
 (** [] *)
 
 (* ###################################################### *)
@@ -235,11 +270,15 @@ Proof.
 Theorem override_shadow' : forall (X:Type) x1 x2 k1 k2 (f : nat->X),
   (override' (override' f k1 x2) k1 x1) k2 = (override' f k1 x1) k2.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros.
+  unfold override'.
+  destruct (eq_nat_dec k1 k2).
+  Case "k1 = k2".
+    reflexivity.
+  Case "k1 <> k2".
+    reflexivity.
+Qed.
 (** [] *)
-
-
-
 
 
 (* ####################################################### *)
@@ -251,8 +290,8 @@ Proof.
     asserts that [P] is true for every element of the list [l]. *)
 
 Inductive all (X : Type) (P : X -> Prop) : list X -> Prop :=
-  (* FILL IN HERE *)
-.
+  | snil  : forall l, l = [] -> all X P l
+  | scons : forall x l, P x -> all X P l -> all X P (x::l).
 
 (** Recall the function [forallb], from the exercise
     [forall_exists_challenge] in chapter [Poly]: *)
@@ -270,8 +309,27 @@ Fixpoint forallb {X : Type} (test : X -> bool) (l : list X) : bool :=
     Are there any important properties of the function [forallb] which
     are not captured by your specification? *)
 
-(* FILL IN HERE *)
-(** [] *)
+Theorem forall_ensure : forall (X : Type) (test : X -> bool) (l : list X),
+                          forallb test l = true ->
+                          all X (fun (x : X) => test x = true) l.
+Proof.
+  intros.
+  induction l.
+  Case "l = []".
+  apply snil.
+  reflexivity.
+  Case "l = x :: l".
+  apply scons.
+    SCase "P x".
+    simpl in H.
+    apply andb_true_elim1 in H.
+    apply H.
+    SCase "all X P l".
+    simpl in H.
+    apply andb_true_elim2 in H.
+    apply IHl in H.
+    exact H.
+Qed.
 
 (** **** Exercise: 4 stars, advanced (filter_challenge)  *)
 (** One of the main purposes of Coq is to prove that programs match
@@ -298,7 +356,57 @@ Fixpoint forallb {X : Type} (test : X -> bool) (l : list X) : bool :=
     for one list to be a merge of two others.  Do this with an
     inductive relation, not a [Fixpoint].)  *)
 
-(* FILL IN HERE *)
+Inductive in_order_merge {X : Type} : list X -> list X -> list X -> Prop :=
+  | iomnil_l  : forall l, in_order_merge [] l l
+  | iomnil_r  : forall l, in_order_merge l [] l
+  | iomcons_l : forall l1 l2 l, forall (x1 x2 : X), 
+                  in_order_merge l1 (x2 :: l2) l -> 
+                  in_order_merge (x1 :: l1) (x2 :: l2) (x1 :: l)
+  | iomcons_r : forall l1 l2 l, forall (x1 x2 : X), 
+                  in_order_merge (x1 :: l1) l2 l -> 
+                  in_order_merge (x1 :: l1) (x2 :: l2) (x2 :: l).
+  
+SearchAbout cons.
+
+Theorem filter_all : forall {X : Type} (test : X -> bool) (l : list X),
+                       all X (fun (x : X) => test x = true) l -> filter test l = l.
+Proof.
+  intros.
+  induction l.
+  simpl. reflexivity.
+  inversion H.
+  inversion H0.
+  apply IHl in H3.
+  simpl. rewrite H3. rewrite H2. reflexivity.
+Qed.
+
+Theorem filter_all_2 : forall {X : Type} (test : X -> bool) (l : list X),
+                         all X (fun (x : X) => test x = false) l -> filter test l = [].
+Proof.
+  intros.
+  induction l.
+  simpl. reflexivity.
+  inversion H.
+  rewrite H0.
+  simpl. reflexivity.
+  apply IHl in H3.
+  simpl. rewrite H2. rewrite H3. reflexivity.  
+Qed.
+
+Theorem filter_challenge : forall {X : Type} (test : X -> bool) (l l1 l2 : list X),
+                             all X (fun (x : X) => test x = true) l1 ->
+                             all X (fun (x : X) => test x = false) l2 ->
+                             in_order_merge l1 l2 l ->
+                             filter test l = l1.
+Proof.
+  intros X test l l1 l2 Hfi Hf2 H.
+  induction H.
+  apply filter_all_2 in Hf2.
+  apply Hf2.
+  apply filter_all in Hfi.
+  apply Hfi.
+Abort.
+
 (** [] *)
 
 (** **** Exercise: 5 stars, advanced, optional (filter_challenge_2)  *)
@@ -326,19 +434,82 @@ Inductive appears_in {X:Type} (a:X) : list X -> Prop :=
 Lemma appears_in_app : forall (X:Type) (xs ys : list X) (x:X), 
      appears_in x (xs ++ ys) -> appears_in x xs \/ appears_in x ys.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros.
+  induction xs.
+  Case "xs = []".
+  simpl in H.
+  right.
+  exact H.
+  Case "xs = x :: xs".
+  simpl in H.
+  inversion H.
+    SCase "x = x0".
+    rewrite H1 in IHxs.
+    left.
+    apply ai_here.
+    apply IHxs in H1.
+    SCase "x /= x0".
+    destruct H1.
+      SSCase "appears_in x xs".
+      left.
+      apply ai_later.
+      exact H1.
+      SSCase "appears_in x ys".
+      right.
+      exact H1.
+Qed.
+
+Lemma app_appears_general : forall (X : Type) (xs ys : list X) (x : X),
+                              appears_in x xs -> appears_in x (xs ++ ys).
+Proof.
+  intros.
+  induction xs.
+  inversion H.
+  simpl.
+  inversion H.
+  apply ai_here.
+  apply IHxs in H1.
+  apply ai_later.
+  exact H1.
+Qed.
 
 Lemma app_appears_in : forall (X:Type) (xs ys : list X) (x:X), 
      appears_in x xs \/ appears_in x ys -> appears_in x (xs ++ ys).
 Proof.
-  (* FILL IN HERE *) Admitted.
-
+  intros.
+  induction xs.
+  Case "xs = []".
+    simpl.
+    destruct H.
+    SCase "left". inversion H.
+    SCase "right". apply H.
+  Case "ys = x0 :: ys".
+    inversion H.
+    SCase "left".
+      inversion H0.
+      SSCase "x = x0".
+      simpl.
+      apply ai_here.
+      SSCase "x /= x0".
+      simpl.
+      apply app_appears_general with (ys:=ys) in H2.
+      apply ai_later.
+      exact H2.
+    SCase "right".
+      simpl.
+      apply ai_later.
+      apply IHxs.
+      right.
+      exact H0.
+Qed.
 
 (** Now use [appears_in] to define a proposition [disjoint X l1 l2],
     which should be provable exactly when [l1] and [l2] are
     lists (with elements of type X) that have no elements in common. *)
 
-(* FILL IN HERE *)
+Definition disjoint {X : Type} (l1 l2 : list X) : Prop :=
+  forall x, (appears_in x l1 -> ~(appears_in x l2)) /\
+            (appears_in x l2 -> ~(appears_in x l1)).
 
 (** Next, use [appears_in] to define an inductive proposition
     [no_repeats X l], which should be provable exactly when [l] is a
@@ -347,12 +518,24 @@ Proof.
     [no_repeats bool []] should be provable, while [no_repeats nat
     [1,2,1]] and [no_repeats bool [true,true]] should not be.  *)
 
-(* FILL IN HERE *)
+Inductive no_repeats {X : Type}  (l : list X) : Prop :=
+  | nr_nil  : l = [] -> no_repeats l
+  | nr_cons : forall x l2, l = x :: l2 -> 
+                           no_repeats l2 -> 
+                           ~(appears_in x l2) -> 
+                           no_repeats l.
 
 (** Finally, state and prove one or more interesting theorems relating
     [disjoint], [no_repeats] and [++] (list append).  *)
 
-(* FILL IN HERE *)
+Theorem dis_app : forall {X : Type} (l1 l2 : list X),
+                    no_repeats (l1 ++ l2) -> disjoint l1 l2.
+Proof.
+  intros.
+  induction l2.
+  rewrite app_empty in H.
+Abort.  
+
 (** [] *)
 
 (** **** Exercise: 3 stars (nostutter)  *)
@@ -425,12 +608,30 @@ Example test_nostutter_4:      not (nostutter [3;1;1;4]).
 Lemma app_length : forall (X:Type) (l1 l2 : list X),
   length (l1 ++ l2) = length l1 + length l2. 
 Proof. 
-  (* FILL IN HERE *) Admitted.
+  intros.
+  induction l1.
+  simpl.
+  reflexivity.
+  simpl.
+  rewrite IHl1.
+  reflexivity.
+Qed.
 
 Lemma appears_in_app_split : forall (X:Type) (x:X) (l:list X),
   appears_in x l -> 
   exists l1, exists l2, l = l1 ++ (x::l2).
 Proof.
+  intros.
+  induction l.
+  Case "l = []".
+    inversion H.
+  Case "l = x :: l".
+    inversion H.
+    rewrite H1 in H.
+Abort.
+    
+    
+
   (* FILL IN HERE *) Admitted.
 
 (** Now define a predicate [repeats] (analogous to [no_repeats] in the
