@@ -5,6 +5,7 @@
 
 Require Import Imp.
 
+
 (** Here's a first try at an evaluation function for commands,
     omitting [WHILE]. *)
 
@@ -179,15 +180,19 @@ Definition test_ceval (st:state) (c:com) :=
    [X] (inclusive: [1 + 2 + ... + X]) in the variable [Y].  Make sure
    your solution satisfies the test that follows. *)
 
-Definition pup_to_n : com := 
-  (* FILL IN HERE *) admit.
+Definition pup_to_n : com :=
+  Y ::= ANum 0;;
+    WHILE BNot (BEq (AId X) (ANum 0)) DO
+      Y ::= APlus  (AId Y) (AId X);;
+      X ::= AMinus (AId X) (ANum 1)
+    END.
 
-(* 
+
 Example pup_to_n_1 : 
   test_ceval (update empty_state X 5) pup_to_n
   = Some (0, 15, 0).
 Proof. reflexivity. Qed.
-*)
+
 (** [] *)
 
 (** **** Exercise: 2 stars, optional (peven)  *)
@@ -230,7 +235,7 @@ Proof.
       SCase "::=". apply E_Ass. reflexivity.
 
       SCase ";;".
-        destruct (ceval_step st c1 i') eqn:Heqr1. 
+        destruct (ceval_step st c1 i') eqn:Heqr1.
         SSCase "Evaluation of r1 terminates normally".
           apply E_Seq with s. 
             apply IHi'. rewrite Heqr1. reflexivity.
@@ -325,8 +330,46 @@ Theorem ceval__ceval_step: forall c st st',
       exists i, ceval_step st c i = Some st'.
 Proof. 
   intros c st st' Hce.
-  ceval_cases (induction Hce) Case.
-  (* FILL IN HERE *) Admitted.
+  ceval_cases (induction Hce) Case;
+    try (exists 1; simpl; reflexivity).
+  Case "E_Ass".
+  exists 1. simpl. rewrite H. reflexivity.
+  Case "E_Seq".
+  inversion IHHce1 as [i1 H1].
+  inversion IHHce2 as [i2 H2].
+  exists (S (i1 + i2)).
+  simpl.
+  apply ceval_step_more with (i2:=i1 + i2) in H1.
+  apply ceval_step_more with (i2:=i1 + i2) in H2.
+  rewrite H1.
+  apply H2.
+  omega.
+  omega.
+  Case "E_IfTrue".
+  inversion IHHce as [i He].
+  exists (S i).
+  simpl. rewrite H. assumption.
+  Case "E_IfFalse".
+  inversion IHHce as [i He].
+  exists (S i).
+  simpl. rewrite H. assumption.
+  Case "E_WhileEnd".
+  exists 1. simpl. rewrite H. reflexivity.
+  Case "E_WhileLoop".
+  inversion IHHce1 as [i1 H1].
+  inversion IHHce2 as [i2 H2].
+  exists (S (i1 + i2)).
+  simpl.
+  rewrite H.
+  apply ceval_step_more with (i2:=i1+i2) in H1.
+  apply ceval_step_more with (i2:=i1+i2) in H2.
+  rewrite H1.
+  rewrite H2.
+  reflexivity.
+  omega.
+  omega.
+Qed.
+
 (** [] *)
 
 Theorem ceval_and_ceval_step_coincide: forall c st st',

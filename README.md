@@ -10,6 +10,8 @@ Working through Software Foundations to learn Coq
 - `MoreCoq.v`
 - `Logic.v`
 - `Prop.v`
+- `Imp.v`
+- `ImpCEvalFun.v`
 
 ## Skipped / Abandoned
 
@@ -18,8 +20,6 @@ Working through Software Foundations to learn Coq
 
 ## Incomplete
 
-- `Imp.v`
-- `ImpCEvalFun.v`
 - `Equiv.v`
 - `Hoare.v`
 - `Smallstep.v`

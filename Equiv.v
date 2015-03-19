@@ -1,7 +1,5 @@
 (** * Equiv: Program Equivalence *)
 
-
-
 Require Export Imp.
 
 (** *** Some general advice for working on exercises:
@@ -155,7 +153,7 @@ Qed.
 
 Theorem bequiv_example:
   bequiv (BEq (AMinus (AId X) (AId X)) (ANum 0)) BTrue. 
-Proof. 
+Proof.
   intros st. unfold beval.
   rewrite aequiv_example. reflexivity.
 Qed.
@@ -189,8 +187,19 @@ Theorem skip_right: forall c,
   cequiv 
     (c;; SKIP) 
     c.
-Proof. 
-  (* FILL IN HERE *) Admitted.
+Proof.
+  intros.
+  split; intros.
+  Case "->".
+    inversion H.
+    simpl. subst. inversion H5.
+    subst.
+    assumption.
+  Case "<-".
+  apply E_Seq with st'.
+  assumption.
+  apply E_Skip.
+Qed.
 (** [] *)
 
 (** Similarly, here is a simple transformations that simplifies [IFB]
