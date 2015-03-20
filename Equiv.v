@@ -215,8 +215,8 @@ Proof.
   Case "->".
     inversion H; subst. assumption. inversion H5.
   Case "<-".
-    apply E_IfTrue. reflexivity. assumption.  Qed.
-
+  apply E_IfTrue. reflexivity. assumption.
+Qed.
 
 (** Of course, few programmers would be tempted to write a conditional
     whose guard is literally [BTrue].  A more interesting case is when
@@ -290,19 +290,59 @@ Theorem IFB_false: forall b c1 c2,
     (IFB b THEN c1 ELSE c2 FI) 
     c2.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros b c1 c2 Hb.
+  split; intros H.
+  Case "->".
+    inversion H; subst.
+    SCase "b => true".
+    unfold bequiv in Hb.
+    rewrite Hb in H5. inversion H5.
+    SCase "b => false".
+    assumption.
+  Case "<-".
+  apply E_IfFalse.
+  unfold bequiv in Hb.
+  simpl in Hb. apply Hb.
+  assumption.
+Qed.
 (** [] *)
 
 (** **** Exercise: 3 stars (swap_if_branches)  *)
 (** Show that we can swap the branches of an IF by negating its
     condition *)
 
+Lemma beval_neg : forall st b b',
+                    beval st (BNot b) = b' -> beval st b = negb b'.
+Proof.
+  intros.
+  destruct b'; simpl in H; symmetry in H; apply negb_sym in H; assumption.
+Qed. 
+
 Theorem swap_if_branches: forall b e1 e2,
   cequiv
     (IFB b THEN e1 ELSE e2 FI)
     (IFB BNot b THEN e2 ELSE e1 FI).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros.
+  split; intros.
+  Case "->".
+  inversion H; subst.
+  apply E_IfFalse. simpl. rewrite H5. reflexivity.
+  assumption.
+  apply E_IfTrue. simpl. rewrite H5. reflexivity.
+  assumption.
+  Case "<-".
+  inversion H; subst.
+  SCase "False".
+  apply E_IfFalse.
+  apply beval_neg in H5; simpl in H5; assumption.
+  assumption.
+  SCase "True".
+  apply E_IfTrue.
+  apply beval_neg in H5; simpl in H5; assumption.
+  assumption.
+ Qed.
+
 (** [] *)
 
 (** *** *)
@@ -335,7 +375,12 @@ Proof.
 (** **** Exercise: 2 stars, advanced, optional (WHILE_false_informal)  *)
 (** Write an informal proof of [WHILE_false].
 
-(* FILL IN HERE *)
+(* For =>, either the loop is done, so it didn't run, and we're done, or
+           the loop isn't done, and so b is true, a contradiction.
+   For <=, first note that the SKIP does not change the state. And then
+           this will work out if we're at the end of the loop, so we
+           need only show that b is false---which follows from our 
+           assumption. *)
 []
 *)
 
@@ -396,13 +441,45 @@ Proof.
 (** Prove the following theorem. _Hint_: You'll want to use
     [WHILE_true_nonterm] here. *)
 
+Lemma skip_state : forall st st',
+                     SKIP / st || st' -> st = st'.
+Proof.
+  intros.
+  inversion H. subst.
+  reflexivity.
+Qed.
+  
 Theorem WHILE_true: forall b c,
      bequiv b BTrue  ->
      cequiv 
        (WHILE b DO c END)
        (WHILE BTrue DO SKIP END).
-Proof. 
-  (* FILL IN HERE *) Admitted.
+Proof.
+  intros.
+  intros st st'.
+  split.
+  Case "->".
+    intros.
+    apply WHILE_true_nonterm with (c:=c) (st:=st) (st':=st') in H.
+    apply ex_falso_quodlibet.
+    apply H in H0. assumption.
+  Case "<-".
+  intros.
+  (* Let's induct over c; it's the easiest way *)
+  remember (WHILE BTrue DO SKIP END).
+  ceval_cases (induction H0) SCase; inversion Heqc0. (* clear out wrong cases *)
+  SCase "E_WhileEnd".
+  subst. simpl in H0. inversion H0.
+  SCase "E_WhileLoop".
+  subst.
+  clear IHceval1.
+  rename H0_ into Hst.
+  apply skip_state in Hst.
+  rewrite Hst.
+  apply IHceval2.
+  assumption.
+Qed.
+
 (** [] *)
 
 Theorem loop_unrolling: forall b c,
@@ -427,13 +504,33 @@ Proof.
       apply E_WhileLoop with (st' := st'0). 
       assumption. assumption. assumption.
     SCase "loop doesn't run".
-      inversion H5; subst. apply E_WhileEnd. assumption.  Qed.
+    inversion H5; subst. apply E_WhileEnd. assumption.
+Qed.
 
 (** **** Exercise: 2 stars, optional (seq_assoc)  *)
 Theorem seq_assoc : forall c1 c2 c3,
   cequiv ((c1;;c2);;c3) (c1;;(c2;;c3)).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros.
+  split; intros.
+  Case "->".
+  inversion H; subst.
+  inversion H2; subst.
+  apply E_Seq with (st':=st'1).
+  assumption.
+  apply E_Seq with (st':=st'0).
+  assumption.
+  assumption.
+  Case "<-".
+  inversion H; subst.
+  inversion H5; subst.
+  apply E_Seq with (st':=st'1).
+  apply E_Seq with (st':=st'0).
+  assumption.
+  assumption.
+  assumption.
+Qed.
+
 (** [] *)
 
 (** ** The Functional Equivalence Axiom *)
@@ -448,8 +545,8 @@ Theorem identity_assignment_first_try : forall (X:id),
 Proof. 
    intros. split; intro H.
      Case "->". 
-       inversion H; subst.  simpl.
-       replace (update st X (st X)) with st.  
+       inversion H; subst. simpl.
+       replace (update st X (st X)) with st.
        constructor. 
        (* Stuck... *) Abort.
 
@@ -530,7 +627,36 @@ Theorem assign_aequiv : forall X e,
   aequiv (AId X) e -> 
   cequiv SKIP (X ::= e).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros.
+  split; intro He.
+  Case "->".
+  apply skip_state in He.
+  unfold aequiv in H.
+  assert (st' = (update st' X (st' X))).
+    apply functional_extensionality. intro.
+    rewrite update_same; reflexivity.
+  rewrite H0.
+  rewrite He.
+  apply E_Ass.
+  rewrite <- H.
+  simpl. reflexivity.
+  Case "<-".
+  inversion He.
+  subst.
+  assert (st = update st X (st X)).
+    apply functional_extensionality. intros.
+    rewrite update_same; reflexivity.
+  rewrite H0 in He at 1.
+  inversion He.
+  rewrite <- H0 in H4.
+  unfold aequiv in H.
+  rewrite <- H in H5.
+  simpl in H5.
+  rewrite H5.
+  rewrite <- H0.
+  apply E_Skip.
+Qed.
+
 (** [] *)
 
 (* ####################################################### *)
@@ -596,13 +722,15 @@ Proof.
   inversion H12. inversion H23.
   split; intros A. 
     apply H1. apply H. apply A.
-    apply H0. apply H2. apply A.  Qed.
+    apply H0. apply H2. apply A.
+Qed.
 
 Lemma trans_cequiv : forall (c1 c2 c3 : com), 
   cequiv c1 c2 -> cequiv c2 c3 -> cequiv c1 c3. 
 Proof.
   unfold cequiv. intros c1 c2 c3 H12 H23 st st'.
-  apply iff_trans with (c2 / st || st'). apply H12. apply H23.  Qed.
+  apply iff_trans with (c2 / st || st'). apply H12. apply H23.
+Qed.
 
 (* ######################################################## *)
 (** ** Behavioral Equivalence is a Congruence *)
@@ -645,7 +773,8 @@ Proof.
     rewrite Heqv. reflexivity.
   Case "<-".
     inversion Hceval. subst. apply E_Ass.
-    rewrite Heqv. reflexivity.  Qed.
+    rewrite Heqv. reflexivity.
+Qed.
 
 (** The congruence property for loops is a little more interesting,
     since it requires induction.
@@ -722,8 +851,27 @@ Proof.
 Theorem CSeq_congruence : forall c1 c1' c2 c2',
   cequiv c1 c1' -> cequiv c2 c2' ->
   cequiv (c1;;c2) (c1';;c2').
-Proof. 
-  (* FILL IN HERE *) Admitted.
+Proof.
+  intros.
+  unfold cequiv.
+  split; intros He.
+  Case "<-".
+  unfold cequiv in *.
+  inversion He. subst.
+  apply H with (st':=st'0) in H3.
+  apply H0 with (st:=st'0) in H6.
+  apply E_Seq with (st':=st'0).
+  assumption.
+  assumption.
+  Case "->".
+  unfold cequiv in *.
+  inversion He. subst.
+  apply H with (st':=st'0) in H3.
+  apply H0 with (st:=st'0) in H6.
+  apply E_Seq with (st':=st'0).
+  assumption.
+  assumption.
+Qed.
 (** [] *)
 
 (** **** Exercise: 3 stars (CIf_congruence)  *)
@@ -731,7 +879,31 @@ Theorem CIf_congruence : forall b b' c1 c1' c2 c2',
   bequiv b b' -> cequiv c1 c1' -> cequiv c2 c2' ->
   cequiv (IFB b THEN c1 ELSE c2 FI) (IFB b' THEN c1' ELSE c2' FI).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros.
+  unfold cequiv.
+  split; intro He.
+  Case "->".
+  unfold cequiv in *.
+  unfold bequiv in H.
+  inversion He; subst.
+  SCase "b => true".
+    apply E_IfTrue. rewrite H in H7. assumption.
+    rewrite H0 in H8. assumption.
+  SCase "b => false".
+    apply E_IfFalse. rewrite H in H7. assumption.
+    rewrite H1 in H8. assumption.
+  Case "<-".
+  unfold cequiv in *.
+  unfold bequiv in H.
+  symmetry in H.
+  inversion He; subst.
+  SCase "b => true".
+  apply E_IfTrue. rewrite H in H7. assumption.
+  rewrite <- H0 in H8. assumption.
+  SCase "b => false".
+  apply E_IfFalse. rewrite H in H7. assumption.
+  rewrite <- H1 in H8. assumption.
+Qed.
 (** [] *)
 
 (** *** *)
