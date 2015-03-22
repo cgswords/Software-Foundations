@@ -12,18 +12,18 @@ Working through Software Foundations to learn Coq
 - `Prop.v`
 - `Imp.v`
 - `ImpCEvalFun.v`
+- `Equiv.v` *Didn't finish 5-Star at the end*
+- `Auto.v`
 
 ## Skipped / Abandoned
 
 - `Rel.v` *Skipped*
 - `MoreLogic.v` *Abandoned*
+- `Hoare.v` *Skipped*
 
 ## Incomplete
 
-- `Equiv.v`
-- `Hoare.v`
 - `Smallstep.v`
-- `Auto.v`
 - `Types.v`
 - `Stlc.v`
 - `StlcProp.v`
