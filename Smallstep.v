@@ -1860,7 +1860,26 @@ Lemma par_body_n__Sn : forall n st,
   st X = n /\ st Y = 0 ->
   par_loop / st ==>* par_loop / (update st X (S n)).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros.
+  unfold par_loop.
+  eapply multi_step.  apply CS_Par2.  repeat (constructor). (* apply CS_While. *)
+  eapply multi_step. apply CS_Par2. repeat (constructor).
+    (* apply CS_IfStep. apply BS_Eq1. apply AS_Id. *)
+  eapply multi_step. apply CS_Par2. repeat (constructor).
+  destruct H as [Hx Hy]. rewrite Hy. simpl.
+  eapply multi_step. apply CS_Par2. repeat (constructor).
+  eapply multi_step. apply CS_Par2. repeat (constructor).
+  rewrite Hx.
+  eapply multi_step. apply CS_Par2. repeat (constructor). 
+  eapply multi_step. apply CS_Par2. apply CS_SeqStep.
+    apply CS_Ass.
+  eapply multi_step. apply CS_Par2. apply CS_SeqFinish.
+  fold par_loop.
+  assert ((n + 1) = S n) by omega.
+  rewrite H.
+  apply multi_refl.
+Qed.
+
 (** [] *)
 
 (** **** Exercise: 3 stars, optional  *)
@@ -1869,7 +1888,41 @@ Lemma par_body_n : forall n st,
   exists st',
     par_loop / st ==>*  par_loop / st' /\ st' X = n /\ st' Y = 0.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros.
+  induction n.
+  Case "n = 0".
+  exists st.
+  split.
+  apply multi_refl.
+  assumption.
+  Case "n = S n".
+  inversion IHn as [st' nstep].
+  destruct nstep  as [nstep nstate].
+  exists (update st' X  (S n)).
+  destruct nstate.
+  split.
+  apply multi_trans with (par_loop, st').
+  assumption.
+  eapply multi_step. apply CS_Par2. apply CS_While.
+  eapply multi_step. apply CS_Par2. repeat (constructor).
+  eapply multi_step. apply CS_Par2. rewrite H1. repeat (constructor). simpl.
+  eapply multi_step. apply CS_Par2. constructor.
+  eapply multi_step. apply CS_Par2. apply CS_SeqStep. apply CS_AssStep.
+    apply AS_Plus1. apply AS_Id.
+  eapply multi_step. apply CS_Par2. apply CS_SeqStep. rewrite H0.
+    apply CS_AssStep. apply AS_Plus.
+  eapply multi_step. apply CS_Par2; apply CS_SeqStep. apply CS_Ass.
+  eapply multi_step. apply CS_Par2. apply CS_SeqFinish.
+  fold par_loop.
+  assert ((n + 1) = S n) by omega.
+  rewrite H2.
+  apply multi_refl.
+  split; simpl.
+  apply update_eq.
+  rewrite update_neq.
+  assumption.
+  intro XY; inversion XY.
+Qed.
 (** [] *)
 
 (** ... the above loop can exit with [X] having any value
@@ -1883,7 +1936,6 @@ Proof.
   intros n. 
   destruct (par_body_n n empty_state). 
     split; unfold update; reflexivity.
-
   rename x into st.
   inversion H as [H' [HX HY]]; clear H. 
   exists (update st Y 1). split.
@@ -1897,7 +1949,6 @@ Proof.
   eapply multi_step. apply CS_Par2. apply CS_IfFalse.
   eapply multi_step. apply CS_ParDone.
   apply multi_refl.
-
   rewrite update_neq. assumption. intro X; inversion X. 
 Qed.
 
@@ -1942,12 +1993,146 @@ Definition stack_multistep st := multi (stack_step st).
     the stack machine small step semantics and then prove it. *)
 
 Definition compiler_is_correct_statement : Prop := 
-(* FILL IN HERE *) admit.
+  forall st a n stack,
+  stack_multistep st (s_compile a, stack) ([], n::stack) <-> (multi (astep st)) a (ANum n). 
 
+Lemma multistep_aplus_cong_left : 
+  forall st a1 a1' a2,
+    (multi (astep st)) a1 a1' ->
+    (multi (astep st)) (APlus a1 a2) (APlus a1' a2).
+Proof.
+  intros.
+  induction H.
+  apply multi_refl.
+  apply multi_step with (APlus y a2).
+  apply AS_Plus1. assumption.
+  assumption.
+Qed.  
+
+Ltac stack_step_destruct n m IH s := 
+  apply multi_trans with n; 
+  try (apply multi_R; apply m);
+  try (apply IH; exists s; split; assumption).
+
+Ltac split_stack_destruct mid H n m :=
+  exists mid; destruct H; split; try (assumption);
+  apply multi_trans with n; try (assumption); try (apply multi_R; apply m).
+
+Theorem app_step_stack :
+  forall st stack e1 e2 stack1,
+  (exists stack2, 
+  stack_multistep st (e1, stack1) ([], stack2) /\
+  stack_multistep st (e2, stack2) ([], stack)) <->
+  stack_multistep st (e1 ++ e2, stack1) ([], stack).
+Proof.
+  intros.
+  split.
+  Case "->".
+  generalize dependent stack1.
+  induction e1.
+  SCase "[]".
+  intros stack2 StackH.
+  inversion StackH.
+  destruct H as [H H1].
+  simpl.
+  inversion H; try (solve by inversion).
+  subst.
+  assumption.
+  SCase "a :: e1".
+  intros stack1 stackH.
+  inversion stackH as [stack2 H].
+  simpl.
+  destruct H as [H H2].
+  inversion H; subst. 
+  inversion H0; subst.
+    stack_step_destruct (e1 ++ e2, n :: stack1) SS_Push IHe1 stack2.
+    stack_step_destruct (e1 ++ e2, st i :: stack1) SS_Load IHe1 stack2.
+    stack_step_destruct (e1 ++ e2, m + n :: stk) SS_Plus IHe1 stack2.
+    stack_step_destruct (e1 ++ e2, m - n :: stk) SS_Minus IHe1 stack2.
+    stack_step_destruct (e1 ++ e2, m * n :: stk) SS_Mult IHe1 stack2.
+  Case "<-".
+  intros.
+  generalize dependent stack1.
+  induction e1.
+  SCase "[]".
+  intros.
+  inversion H; subst.
+  exists stack0. split; apply multi_refl.
+  exists stack1. split. apply multi_refl. assumption.
+  SCase "a :: e1".
+  intros.
+  inversion H. subst.
+  inversion H0; subst; apply IHe1 in H1; inversion H1 as [stackmid H2]; subst.
+    split_stack_destruct stackmid H2 (e1, n :: stack1) SS_Push.
+    split_stack_destruct stackmid H2 (e1, st i :: stack1) SS_Load.
+    split_stack_destruct stackmid H2 (e1, m + n :: stk) SS_Plus.
+    split_stack_destruct stackmid H2 (e1, m - n :: stk) SS_Minus.
+    split_stack_destruct stackmid H2 (e1, m * n :: stk) SS_Mult.    
+Qed.
 
 Theorem compiler_is_correct : compiler_is_correct_statement.
 Proof.
-(* FILL IN HERE *) Admitted.
+  unfold compiler_is_correct_statement.
+  intros.
+  split.
+  Case "<-".
+  (*
+  intros.
+  generalize dependent st.
+  generalize dependent n.
+  aexp_cases (induction a) SCase; intros; simpl in H.
+  SCase "ANum".
+  inversion H. subst. inversion H0. subst. inversion H1. subst. apply multi_refl.
+  subst. inversion H2.
+  SCase "AId".
+  inversion H. subst. inversion H0; subst. inversion H1. subst.
+  apply multi_R. apply AS_Id.
+  apply multi_R. inversion H2.
+  SCase "APlus".
+  rewrite <- app_step_stack in H.
+  inversion H as [stack2 H0]; clear H.
+  destruct H0 as [H1 H2].
+  rewrite <- app_step_stack in H2.
+  inversion H2 as [stack0 H3]; clear H2.
+  destruct H3 as [H3 H4].
+  inversion H4.
+  inversion H. subst. inversion H0. subst.
+  apply multi_trans with (APlus (ANum m) a2).  
+  apply multistep_aplus_cong_left.
+  apply IHa1.
+  inversion H3. *)
+  admit.
+  Case "->".
+  intros.
+  generalize dependent stack0.
+  generalize dependent st.
+  generalize dependent n.
+  aexp_cases (induction a) SCase; intros; simpl.
+  SCase "ANum".
+  inversion H; subst.
+  apply multi_R.
+  constructor.
+  inversion H0. subst. 
+  SCase "AId".
+  inversion H; subst.
+  inversion H0. subst.
+  inversion H1. subst.
+  apply multi_R.
+  constructor.
+  inversion H2.
+  SCase "APlus".
+  inversion H. subst. inversion H0. subst.
+  rewrite <- app_step_stack.
+  exists (n1::stack0).
+  split.
+  apply IHa1.
+  apply multi_refl.
+  rewrite <- app_step_stack.
+  exists (n2 :: n1 :: stack0).
+Abort.
+(* It seems like the theorem is not in the right shape, but 
+   I don't really want to sink more time into this right now. *)
+
 (** [] *)
 
 (** $Date: 2014-12-31 15:16:58 -0500 (Wed, 31 Dec 2014) $ *)

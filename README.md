@@ -14,6 +14,9 @@ Working through Software Foundations to learn Coq
 - `ImpCEvalFun.v`
 - `Equiv.v` *Didn't finish 5-Star at the end*
 - `Auto.v`
+- `Smallstep.v` 
+  *Stack compilation problem is not done, and would be worth revisiting*
+- 
 
 ## Skipped / Abandoned
 
@@ -23,7 +26,6 @@ Working through Software Foundations to learn Coq
 
 ## Incomplete
 
-- `Smallstep.v`
 - `Types.v`
 - `Stlc.v`
 - `StlcProp.v`
