@@ -604,7 +604,19 @@ Proof with auto.
       SCase "ST_IfFalse". assumption.
       SCase "ST_If". apply T_If; try assumption.
         apply IHHT1; assumption.
-    (* FILL IN HERE *) Admitted.
+   Case "T_Succ". inversion HE; subst; clear HE.
+    apply T_Succ. apply IHHT in H0. assumption.
+   Case "T_Pred".
+     inversion HE; subst; clear HE.
+     SCase "ST_PredZero". assumption.
+     SCase "ST_PredSucc". inversion HT. assumption.
+     SCase "ST_Pred". apply T_Pred. apply IHHT in H0. assumption.
+   Case "T_Iszero".
+     inversion HE; subst; clear HE.
+     SCase "ST_IszeroZero". apply T_True.
+     SCase "ST_IszeroSucc". apply T_False.
+     SCase "ST_Iszero". apply T_Iszero. apply IHHT in H0. assumption.
+Qed.
 (** [] *)
 
 (** **** Exercise: 3 stars, advanced (finish_preservation_informal)  *)
@@ -650,7 +662,21 @@ Theorem preservation' : forall t t' T,
   t ==> t' ->
   |- t' \in T.
 Proof with eauto.
-  (* FILL IN HERE *) Admitted.
+  intros t t' T type H.
+  generalize dependent T.
+  step_cases (induction H) Case; intros; inversion type; try (assumption).
+  apply IHstep in H3.
+  apply T_If...
+  apply IHstep in H1.
+  apply T_Succ...
+  inversion H1...
+  apply IHstep in H1.
+  apply T_Pred...
+  apply T_True.
+  apply T_False.
+  apply IHstep in H1.
+  apply T_Iszero...
+Qed.
 (** [] *)
 
 (* ###################################################################### *)
@@ -667,11 +693,14 @@ Corollary soundness : forall t t' T,
   t ==>* t' ->
   ~(stuck t').
 Proof. 
-  intros t t' T HT P. induction P; intros [R S].
+  intros t t' T HT P. 
+  induction P; intros [R S].
   destruct (progress x T HT); auto.   
-  apply IHP.  apply (preservation x y T HT H).
-  unfold stuck. split; auto.   Qed.
-
+  apply IHP.  
+  apply (preservation x y T HT H).
+  unfold stuck. 
+  split; assumption.   
+Qed.
 
 (* ###################################################################### *)
 (** * Aside: the [normalize] Tactic *)
@@ -683,7 +712,6 @@ Proof.
     These proofs are simple but repetitive to do by hand. Consider for
     example reducing an arithmetic expression using the small-step
     relation [astep]. *)
-
 
 Definition amultistep st := multi (astep st). 
 Notation " t '/' st '==>a*' t' " := (amultistep st t t')
@@ -771,7 +799,8 @@ Theorem normalize_ex : exists e',
   (AMult (ANum 3) (AMult (ANum 2) (ANum 1))) / empty_state 
   ==>a* e'.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  eapply ex_intro. normalize.
+Qed.
 
 (** [] *)
 
@@ -782,7 +811,8 @@ Theorem normalize_ex' : exists e',
   (AMult (ANum 3) (AMult (ANum 2) (ANum 1))) / empty_state 
   ==>a* e'.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  eapply ex_intro. normalize.
+Qed.
 (** [] *)
 
 
@@ -796,12 +826,24 @@ Proof.
     and [|- t' \in T], then [|- t \in T]?  If so, prove it.  If
     not, give a counter-example.  (You do not need to prove your
     counter-example in Coq, but feel free to do so if you like.)
-
-    (* FILL IN HERE *)
 [] *)
 
-
-
+Theorem no_subect_expansion : 
+  exists t' T t,
+    |- t' \in T /\ t ==> t' /\ ~(|- t \in T).
+Proof.
+  exists ttrue.
+  exists TBool.
+  exists (tif ttrue ttrue tzero).
+  split.
+  apply T_True.
+  split.
+  auto.
+  unfold not.
+  intros.
+  inversion H.
+  inversion H6.
+Qed.
 
 (** **** Exercise: 2 stars (variation1)  *)
 (** Suppose, that we add this new rule to the typing relation: 
@@ -813,12 +855,22 @@ Proof.
    else "becomes false." If a property becomes false, give a
    counterexample.
       - Determinism of [step]
+ 
+        This will still work because we didn't change how steps are taken.
 
       - Progress
 
+        (tsucc ttrue) \in TBool, but there is no step and it is not a value,
+        so no progress.
+
       - Preservation
 
+        If |- t \in T and t ==> t', then t <> (tsucc tb) where tb is a boolean
+        value, so this will still work out. We'll have to do induction on
+        t ==> t', though, not t \in T, to get it to go through.
+
 [] *)
+
 
 (** **** Exercise: 2 stars (variation2)  *)
 (** Suppose, instead, that we add this new rule to the [step] relation: 

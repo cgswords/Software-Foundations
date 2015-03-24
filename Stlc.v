@@ -281,8 +281,6 @@ Hint Constructors value.
     means the [step] relation will always be working with closed
     terms (ones with no free variables).  *)
 
-
-
 (* ###################################################################### *)
 (** *** Substitution *)
 
@@ -387,6 +385,14 @@ where "'[' x ':=' s ']' t" := (subst x s t).
 Inductive substi (s:tm) (x:id) : tm -> tm -> Prop := 
   | s_var1 : 
       substi s x (tvar x) s
+  | s_var2 :
+      x <> y ->
+      substi s x (tvar y) (tvar y)
+  | s_app :
+      forall t1 t2 t1' t2',
+        substi s x t1 t1' ->
+        substi s x t2 t2' ->
+        substi s t (tapp t1 t2) (tapp t1' t2')
   (* FILL IN HERE *)
 .
 

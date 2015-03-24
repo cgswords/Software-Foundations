@@ -16,7 +16,7 @@ Working through Software Foundations to learn Coq
 - `Auto.v`
 - `Smallstep.v` 
   *Stack compilation problem is not done, and would be worth revisiting*
-- 
+- `Types.v`
 
 ## Skipped / Abandoned
 
@@ -26,7 +26,6 @@ Working through Software Foundations to learn Coq
 
 ## Incomplete
 
-- `Types.v`
 - `Stlc.v`
 - `StlcProp.v`
 - `Typechecking.v`
