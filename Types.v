@@ -185,7 +185,21 @@ Hint Unfold stuck.
 Example some_term_is_stuck :
   exists t, stuck t.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros.
+  exists (tsucc ttrue).
+  unfold stuck.
+  split.
+  unfold normal_form.
+  unfold not.
+  intros.
+  inversion H.
+  inversion H0.
+  inversion H2.
+  unfold not.
+  intros.
+  inversion H; inversion H0.
+  inversion H2.
+Qed.
 (** [] *)
 
 (** However, although values and normal forms are not the same in this
@@ -205,18 +219,95 @@ Proof.
 Lemma value_is_nf : forall t,
   value t -> step_normal_form t.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros.
+  unfold normal_form.
+  unfold not.
+  intros.
+  inversion H; subst; inversion H1; subst; inversion H0; inversion H2.
+  (* Try with induction on H1. *)
+  induction H3; try (solve by inversion 2).
+  Case "0".
+  apply IHstep.
+  inversion H1.
+  unfold value; right; assumption.
+  exists t1'. assumption.
+  inversion H1. assumption.
+  Case "S n".
+  induction H3; try (solve by inversion 2).
+  apply IHstep.
+  inversion H1.
+  unfold value; right; assumption.
+  exists t1'. assumption.
+  inversion H1. assumption.
+Qed.
+
+Lemma value_is_nf_2 : forall t,
+  value t -> step_normal_form t.
+Proof.
+  intros.
+  unfold normal_form.
+  unfold not.
+  intros.
+  inversion H; subst; inversion H1; subst; inversion H0; inversion H2; subst.
+  (* Try with induction on H1. *)
+  generalize dependent x.
+  induction H2. intros. inversion H3. inversion H5. subst. inversion H4.
+  intros.
+  inversion H1.
+  inversion H3. subst.
+  apply IHnvalue with (x:=t1').
+  right. assumption.
+  exists t1'. assumption.
+  assumption.
+  assumption.
+  generalize dependent x.
+  induction H2.
+  intros. inversion H3. subst. inversion H3. inversion H7.
+  intros.
+  inversion H3.
+  apply IHnvalue with (x:=t1').
+  inversion H. subst. inversion H8. subst. inversion H8. right. assumption.
+  exists t1'. assumption.
+  inversion H. subst. inversion H8. subst. inversion H8. assumption.
+  assumption.
+Qed.                                                 
+  
 (** [] *)
-
-
+  
 (** **** Exercise: 3 stars, optional (step_deterministic)  *)
 (** Using [value_is_nf], we can show that the [step] relation is
     also deterministic... *)
 
+Ltac not_normal_form H t :=
+  apply or_intror with (A:=bvalue t) in H;
+  apply value_is_nf in H; unfold normal_form in H;
+  apply ex_falso_quodlibet; apply H.
+
+Ltac IHsrefl IH H := apply IH in H; subst; reflexivity.
+
 Theorem step_deterministic:
   deterministic step.
 Proof with eauto.
-  (* FILL IN HERE *) Admitted.
+  unfold deterministic.
+  intros.
+  generalize dependent y2.
+  step_cases (induction H) Case; intros; inversion H0; subst; 
+    try (reflexivity); try (solve by inversion).
+  IHsrefl IHstep H5.
+  IHsrefl IHstep H2.
+  not_normal_form H t1.
+  inversion H2. exists t1'0. assumption.
+  not_normal_form H2 y2.
+  inversion H. exists t1'0. assumption.
+  apply IHstep in H2. rewrite H2. reflexivity.
+  inversion H2.
+  not_normal_form H t1.
+  inversion H0. exists t1'0. assumption.
+  not_normal_form H2 t0.
+  inversion H. exists t1'0. assumption.
+  apply IHstep in H2. rewrite H2. reflexivity.
+Qed.
+
 (** [] *)
 
 
@@ -332,7 +423,10 @@ Example succ_hastype_nat__hastype_nat : forall t,
   |- tsucc t \in TNat ->
   |- t \in TNat.  
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros.
+  inversion H.
+  assumption.
+Qed.  
 (** [] *)
 
 (* ###################################################################### *)
@@ -391,7 +485,41 @@ Proof with auto.
     SCase "t1 can take a step".
       inversion H as [t1' H1].
       exists (tif t1' t2 t3)...
-  (* FILL IN HERE *) Admitted.
+  Case "T_Succ".
+    inversion IHHT; clear IHHT.
+    SCase "t1 is a value".
+      left.
+      apply (nat_canonical t1 HT) in H...  
+      (* right. apply nv_succ. assumption. *)
+    SCase "t1 can step".
+      inversion H.
+      right.
+      exists (tsucc x)...
+      (* apply ST_Succ. assumption. *)
+  Case "T_Pred".
+    right.
+    inversion IHHT; clear IHHT.
+    SCase "t1 ins a value".
+      apply (nat_canonical t1 HT) in H.
+      inversion H.
+      exists tzero...
+      exists t...
+    SCase "t1 can step".
+      inversion H.
+      exists (tpred x)...
+  Case "T_Iszero".
+    right.
+    inversion IHHT; clear IHHT.
+    SCase "t1 is a value".
+      apply (nat_canonical t1 HT) in H.
+      inversion H.
+      exists ttrue...
+      exists tfalse...
+    SCase "t1 can step".
+      inversion H.
+      exists (tiszero x)...
+Qed.
+
 (** [] *)
 
 (** **** Exercise: 3 stars, advanced (finish_progress_informal)  *)
