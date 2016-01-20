@@ -17,6 +17,7 @@ Working through Software Foundations to learn Coq
 - `Smallstep.v` 
   *Stack compilation problem is not done, and would be worth revisiting*
 - `Types.v`
+- `Stlc.v` *Didn't finish 4-star at the end*
 
 ## Skipped / Abandoned
 
@@ -26,7 +27,6 @@ Working through Software Foundations to learn Coq
 
 ## Incomplete
 
-- `Stlc.v`
 - `StlcProp.v`
 - `Typechecking.v`
 - `MoreStlc.v`

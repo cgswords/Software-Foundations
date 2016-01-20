@@ -386,22 +386,77 @@ Inductive substi (s:tm) (x:id) : tm -> tm -> Prop :=
   | s_var1 : 
       substi s x (tvar x) s
   | s_var2 :
+      forall y,
       x <> y ->
       substi s x (tvar y) (tvar y)
   | s_app :
       forall t1 t2 t1' t2',
         substi s x t1 t1' ->
         substi s x t2 t2' ->
-        substi s t (tapp t1 t2) (tapp t1' t2')
-  (* FILL IN HERE *)
-.
+        substi s x (tapp t1 t2) (tapp t1' t2')
+  | s_abs1 :
+      forall T bod,
+      substi s x (tabs x T bod) (tabs x T bod)
+  | s_abs2 :
+      forall y T bod bod',
+        x <> y ->
+        substi s x bod bod' ->
+        substi s x (tabs y T bod) (tabs y T bod')
+  | s_true :
+      substi s x ttrue ttrue
+  | s_false :
+      substi s x tfalse tfalse
+  | s_if :
+      forall t1 t2 t3 t1' t2' t3',
+        substi s x t1 t1' ->
+        substi s x t2 t2' ->
+        substi s x t3 t3' ->
+        substi s x (tif t1 t2 t3) (tif t1' t2' t3').
 
 Hint Constructors substi.
+
+Lemma rewrite_if_true : forall i (t1 t2 : tm),
+  (if eq_id_dec i i then t1 else t2) = t1.
+Proof.
+  intros.
+  destruct (eq_id_dec i i).
+  auto.
+  exfalso. apply n. reflexivity.
+Qed.
+
+Lemma rewrite_if_false : forall i1 i2 (t1 t2 : tm),
+    i1 <> i2 -> (if eq_id_dec i1 i2 then t1 else t2) = t2.
+Proof.
+  intros.
+  destruct (eq_id_dec i1 i2).
+  exfalso. apply H. assumption.
+  reflexivity.
+Qed.
 
 Theorem substi_correct : forall s x t t',
   [x:=s]t = t' <-> substi s x t t'.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros.
+  split.
+  intros.
+  generalize dependent t'.
+  t_cases (induction t) Case;
+    intros;
+    try (subst; simpl; auto);
+    try (subst; simpl; destruct (eq_id_dec x0 i); intros; subst; auto).
+  generalize dependent t'.
+  t_cases (induction t) Case; intros.
+  inversion H. simpl. apply rewrite_if_true.
+  simpl. apply rewrite_if_false. assumption.
+  inversion H. subst. simpl. apply IHt1 in H2. apply IHt2 in H4. subst. reflexivity.
+  inversion H. simpl. rewrite rewrite_if_true. reflexivity.
+  simpl. rewrite rewrite_if_false. apply IHt in H5. subst. reflexivity.
+  assumption.
+  simpl. inversion H. reflexivity.
+  simpl. inversion H. reflexivity.
+  inversion H. apply IHt1 in H3. apply IHt2 in H5. apply IHt3 in H6.
+  subst. simpl. reflexivity.
+Qed.
 (** [] *)
 
 (* ################################### *)
@@ -478,8 +533,6 @@ Notation multistep := (multi step).
 Notation "t1 '==>*' t2" := (multistep t1 t2) (at level 40).
 
 (* ##################################### *)
-
-
 
 
 
@@ -588,9 +641,8 @@ Lemma step_example5 :
        (tapp (tapp idBBBB idBB) idB)
   ==>* idB.
 Proof.
-  (* FILL IN HERE *) Admitted.
-
-(* FILL IN HERE *)
+  normalize.
+Qed.
 (** [] *)
 
 (* ###################################################################### *)
@@ -755,7 +807,18 @@ Example typing_example_2_full :
           (tapp (tvar y) (tapp (tvar y) (tvar x))))) \in
     (TArrow TBool (TArrow (TArrow TBool TBool) TBool)).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  apply T_Abs.
+  apply T_Abs.
+  eapply T_App.
+  apply T_Var.
+  apply extend_eq.
+  eapply T_App.
+  apply T_Var.
+  apply extend_eq.
+  apply T_Var.
+  unfold extend.
+  simpl. reflexivity.
+Qed.
 (** [] *)
 
 (** **** Exercise: 2 stars (typing_example_3)  *)
@@ -774,8 +837,15 @@ Example typing_example_3 :
             (tabs z TBool
                (tapp (tvar y) (tapp (tvar x) (tvar z)))))) \in
       T.
-Proof with auto.
-  (* FILL IN HERE *) Admitted.
+Proof with auto using extend_eq.
+  exists (TArrow (TArrow TBool TBool) (TArrow (TArrow TBool TBool) (TArrow TBool TBool))).
+  apply T_Abs.
+  apply T_Abs.
+  apply T_Abs.
+  apply T_App with (T11:=TBool). auto.
+  apply T_App with (T11:=TBool). auto.
+  auto.
+Qed.
 (** [] *)
 
 (** We can also show that terms are _not_ typable.  For example, let's
@@ -817,7 +887,14 @@ Example typing_nonexample_3 :
              (tapp (tvar x) (tvar x))) \in
           T).
 Proof.
-  (* FILL IN HERE *) Admitted.
+  intros Hc. inversion Hc as [S].
+  destruct S.
+  inversion H. inversion H0. subst.
+  inversion H6. subst. inversion H4. subst.
+  inversion H3.
+  inversion H as [T].
+  (* Who knows... *)
+  Admitted.
 (** [] *)
 
 

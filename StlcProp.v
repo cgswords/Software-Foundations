@@ -129,10 +129,44 @@ Qed.
 Theorem progress' : forall t T,
      empty |- t \in T ->
      value t \/ exists t', t ==> t'.
-Proof.
+Proof with auto.
   intros t.
   t_cases (induction t) Case; intros T Ht; auto.
-  (* FILL IN HERE *) Admitted.
+  inversion Ht. subst. inversion H1.
+  Case "tapp".
+  right.
+  inversion Ht.
+  apply IHt1 in H2.
+  apply IHt2 in H4.
+  inversion Ht.
+  subst.
+  destruct H2.
+  destruct H4.
+  assert (exists x0 t0, t1 = tabs x0 T0 t0).
+  apply canonical_forms_fun with (T2:=T)...
+  destruct H1. destruct H1. subst. exists ([x0:=t2] x1)...
+  inversion H0. exists (tapp t1 x0)...
+  inversion H. exists (tapp x0 t2)...
+  Case "tif".
+  right.
+  inversion Ht.
+  apply IHt1 in H3.
+  inversion Ht.
+  subst.
+  destruct H3.
+  apply canonical_forms_bool in H11.
+  destruct H11.
+  exists (t2).
+  rewrite H0.
+  auto.
+  exists t3.
+  rewrite H0.
+  auto.
+  assumption.
+  inversion H.
+  exists (tif x0 t2 t3).
+  auto.
+Qed.
 (** [] *)
 
 (* ###################################################################### *)
